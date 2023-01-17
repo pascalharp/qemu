@@ -15,7 +15,7 @@
 #include "hw/xen/interface/io/xenbus.h"
 
 #include "hw/xen/xen.h"
-#include "hw/pci/pci.h"
+#include "hw/pci/pci_device.h"
 #include "hw/xen/trace.h"
 
 extern xc_interface *xen_xc;
@@ -314,12 +314,6 @@ static inline int xen_set_pci_intx_level(domid_t domid, uint16_t segment,
 {
     return xendevicemodel_set_pci_intx_level(xen_dmod, domid, segment, bus,
                                              device, intx, level);
-}
-
-static inline int xen_set_pci_link_route(domid_t domid, uint8_t link,
-                                         uint8_t irq)
-{
-    return xendevicemodel_set_pci_link_route(xen_dmod, domid, link, irq);
 }
 
 static inline int xen_inject_msi(domid_t domid, uint64_t msi_addr,

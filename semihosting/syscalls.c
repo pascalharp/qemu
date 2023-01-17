@@ -317,9 +317,7 @@ static void host_read(CPUState *cs, gdb_syscall_complete_cb complete,
         complete(cs, -1, EFAULT);
         return;
     }
-    do {
-        ret = read(gf->hostfd, ptr, len);
-    } while (ret == -1 && errno == EINTR);
+    ret = RETRY_ON_EINTR(read(gf->hostfd, ptr, len));
     if (ret == -1) {
         complete(cs, -1, errno);
         unlock_user(ptr, buf, 0);
@@ -627,7 +625,7 @@ static void console_write(CPUState *cs, gdb_syscall_complete_cb complete,
     }
     ret = qemu_semihosting_console_write(ptr, len);
     complete(cs, ret ? ret : -1, ret ? 0 : EIO);
-    unlock_user(ptr, buf, ret);
+    unlock_user(ptr, buf, 0);
 }
 
 static void console_fstat(CPUState *cs, gdb_syscall_complete_cb complete,

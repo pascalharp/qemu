@@ -42,10 +42,17 @@
 # else
 #  error "Unknown ABI"
 # endif
-#endif 
+#endif
 
+#if TCG_TARGET_REG_BITS == 64
+# define TCG_TARGET_CALL_ARG_I32   TCG_CALL_ARG_EXTEND
+#else
+# define TCG_TARGET_CALL_ARG_I32   TCG_CALL_ARG_NORMAL
+#endif
 #ifdef _CALL_SYSV
-# define TCG_TARGET_CALL_ALIGN_ARGS   1
+# define TCG_TARGET_CALL_ARG_I64   TCG_CALL_ARG_EVEN
+#else
+# define TCG_TARGET_CALL_ARG_I64   TCG_CALL_ARG_NORMAL
 #endif
 
 /* For some memory operations, we need a scratch that isn't R0.  For the AIX
@@ -1847,44 +1854,101 @@ static void tcg_out_mb(TCGContext *s, TCGArg a0)
     tcg_out32(s, insn);
 }
 
+static inline uint64_t make_pair(tcg_insn_unit i1, tcg_insn_unit i2)
+{
+    if (HOST_BIG_ENDIAN) {
+        return (uint64_t)i1 << 32 | i2;
+    }
+    return (uint64_t)i2 << 32 | i1;
+}
+
+static inline void ppc64_replace2(uintptr_t rx, uintptr_t rw,
+                                  tcg_insn_unit i0, tcg_insn_unit i1)
+{
+#if TCG_TARGET_REG_BITS == 64
+    qatomic_set((uint64_t *)rw, make_pair(i0, i1));
+    flush_idcache_range(rx, rw, 8);
+#else
+    qemu_build_not_reached();
+#endif
+}
+
+static inline void ppc64_replace4(uintptr_t rx, uintptr_t rw,
+                                  tcg_insn_unit i0, tcg_insn_unit i1,
+                                  tcg_insn_unit i2, tcg_insn_unit i3)
+{
+    uint64_t p[2];
+
+    p[!HOST_BIG_ENDIAN] = make_pair(i0, i1);
+    p[HOST_BIG_ENDIAN] = make_pair(i2, i3);
+
+    /*
+     * There's no convenient way to get the compiler to allocate a pair
+     * of registers at an even index, so copy into r6/r7 and clobber.
+     */
+    asm("mr  %%r6, %1\n\t"
+        "mr  %%r7, %2\n\t"
+        "stq %%r6, %0"
+        : "=Q"(*(__int128 *)rw) : "r"(p[0]), "r"(p[1]) : "r6", "r7");
+    flush_idcache_range(rx, rw, 16);
+}
+
 void tb_target_set_jmp_target(uintptr_t tc_ptr, uintptr_t jmp_rx,
                               uintptr_t jmp_rw, uintptr_t addr)
 {
-    if (TCG_TARGET_REG_BITS == 64) {
-        tcg_insn_unit i1, i2;
-        intptr_t tb_diff = addr - tc_ptr;
-        intptr_t br_diff = addr - (jmp_rx + 4);
-        uint64_t pair;
+    tcg_insn_unit i0, i1, i2, i3;
+    intptr_t tb_diff = addr - tc_ptr;
+    intptr_t br_diff = addr - (jmp_rx + 4);
+    intptr_t lo, hi;
 
-        /* This does not exercise the range of the branch, but we do
-           still need to be able to load the new value of TCG_REG_TB.
-           But this does still happen quite often.  */
-        if (tb_diff == (int16_t)tb_diff) {
-            i1 = ADDI | TAI(TCG_REG_TB, TCG_REG_TB, tb_diff);
-            i2 = B | (br_diff & 0x3fffffc);
-        } else {
-            intptr_t lo = (int16_t)tb_diff;
-            intptr_t hi = (int32_t)(tb_diff - lo);
-            assert(tb_diff == hi + lo);
-            i1 = ADDIS | TAI(TCG_REG_TB, TCG_REG_TB, hi >> 16);
-            i2 = ADDI | TAI(TCG_REG_TB, TCG_REG_TB, lo);
-        }
-#if HOST_BIG_ENDIAN
-        pair = (uint64_t)i1 << 32 | i2;
-#else
-        pair = (uint64_t)i2 << 32 | i1;
-#endif
-
-        /* As per the enclosing if, this is ppc64.  Avoid the _Static_assert
-           within qatomic_set that would fail to build a ppc32 host.  */
-        qatomic_set__nocheck((uint64_t *)jmp_rw, pair);
-        flush_idcache_range(jmp_rx, jmp_rw, 8);
-    } else {
+    if (TCG_TARGET_REG_BITS == 32) {
         intptr_t diff = addr - jmp_rx;
         tcg_debug_assert(in_range_b(diff));
         qatomic_set((uint32_t *)jmp_rw, B | (diff & 0x3fffffc));
         flush_idcache_range(jmp_rx, jmp_rw, 4);
+        return;
     }
+
+    /*
+     * For 16-bit displacements, we can use a single add + branch.
+     * This happens quite often.
+     */
+    if (tb_diff == (int16_t)tb_diff) {
+        i0 = ADDI | TAI(TCG_REG_TB, TCG_REG_TB, tb_diff);
+        i1 = B | (br_diff & 0x3fffffc);
+        ppc64_replace2(jmp_rx, jmp_rw, i0, i1);
+        return;
+    }
+
+    lo = (int16_t)tb_diff;
+    hi = (int32_t)(tb_diff - lo);
+    assert(tb_diff == hi + lo);
+    i0 = ADDIS | TAI(TCG_REG_TB, TCG_REG_TB, hi >> 16);
+    i1 = ADDI | TAI(TCG_REG_TB, TCG_REG_TB, lo);
+
+    /*
+     * Without stq from 2.07, we can only update two insns,
+     * and those must be the ones that load the target address.
+     */
+    if (!have_isa_2_07) {
+        ppc64_replace2(jmp_rx, jmp_rw, i0, i1);
+        return;
+    }
+
+    /*
+     * For 26-bit displacements, we can use a direct branch.
+     * Otherwise we still need the indirect branch, which we
+     * must restore after a potential direct branch write.
+     */
+    br_diff -= 4;
+    if (in_range_b(br_diff)) {
+        i2 = B | (br_diff & 0x3fffffc);
+        i3 = NOP;
+    } else {
+        i2 = MTSPR | RS(TCG_REG_TB) | CTR;
+        i3 = BCCTR | BO_ALWAYS;
+    }
+    ppc64_replace4(jmp_rx, jmp_rw, i0, i1, i2, i3);
 }
 
 static void tcg_out_call_int(TCGContext *s, int lk,
@@ -1938,7 +2002,8 @@ static void tcg_out_call_int(TCGContext *s, int lk,
 #endif
 }
 
-static void tcg_out_call(TCGContext *s, const tcg_insn_unit *target)
+static void tcg_out_call(TCGContext *s, const tcg_insn_unit *target,
+                         const TCGHelperInfo *info)
 {
     tcg_out_call_int(s, LK, target);
 }
@@ -2145,9 +2210,7 @@ static bool tcg_out_qemu_ld_slow_path(TCGContext *s, TCGLabelQemuLdst *lb)
     lo = lb->addrlo_reg;
     hi = lb->addrhi_reg;
     if (TCG_TARGET_REG_BITS < TARGET_LONG_BITS) {
-#ifdef TCG_TARGET_CALL_ALIGN_ARGS
-        arg |= 1;
-#endif
+        arg |= (TCG_TARGET_CALL_ARG_I64 == TCG_CALL_ARG_EVEN);
         tcg_out_mov(s, TCG_TYPE_I32, arg++, hi);
         tcg_out_mov(s, TCG_TYPE_I32, arg++, lo);
     } else {
@@ -2159,7 +2222,7 @@ static bool tcg_out_qemu_ld_slow_path(TCGContext *s, TCGLabelQemuLdst *lb)
     tcg_out_movi(s, TCG_TYPE_I32, arg++, oi);
     tcg_out32(s, MFSPR | RT(arg) | LR);
 
-    tcg_out_call(s, qemu_ld_helpers[opc & (MO_BSWAP | MO_SIZE)]);
+    tcg_out_call_int(s, LK, qemu_ld_helpers[opc & (MO_BSWAP | MO_SIZE)]);
 
     lo = lb->datalo_reg;
     hi = lb->datahi_reg;
@@ -2193,9 +2256,7 @@ static bool tcg_out_qemu_st_slow_path(TCGContext *s, TCGLabelQemuLdst *lb)
     lo = lb->addrlo_reg;
     hi = lb->addrhi_reg;
     if (TCG_TARGET_REG_BITS < TARGET_LONG_BITS) {
-#ifdef TCG_TARGET_CALL_ALIGN_ARGS
-        arg |= 1;
-#endif
+        arg |= (TCG_TARGET_CALL_ARG_I64 == TCG_CALL_ARG_EVEN);
         tcg_out_mov(s, TCG_TYPE_I32, arg++, hi);
         tcg_out_mov(s, TCG_TYPE_I32, arg++, lo);
     } else {
@@ -2209,9 +2270,7 @@ static bool tcg_out_qemu_st_slow_path(TCGContext *s, TCGLabelQemuLdst *lb)
     if (TCG_TARGET_REG_BITS == 32) {
         switch (s_bits) {
         case MO_64:
-#ifdef TCG_TARGET_CALL_ALIGN_ARGS
-            arg |= 1;
-#endif
+            arg |= (TCG_TARGET_CALL_ARG_I64 == TCG_CALL_ARG_EVEN);
             tcg_out_mov(s, TCG_TYPE_I32, arg++, hi);
             /* FALLTHRU */
         case MO_32:
@@ -2232,7 +2291,7 @@ static bool tcg_out_qemu_st_slow_path(TCGContext *s, TCGLabelQemuLdst *lb)
     tcg_out_movi(s, TCG_TYPE_I32, arg++, oi);
     tcg_out32(s, MFSPR | RT(arg) | LR);
 
-    tcg_out_call(s, qemu_st_helpers[opc & (MO_BSWAP | MO_SIZE)]);
+    tcg_out_call_int(s, LK, qemu_st_helpers[opc & (MO_BSWAP | MO_SIZE)]);
 
     tcg_out_b(s, 0, lb->raddr);
     return true;
@@ -2267,9 +2326,8 @@ static bool tcg_out_fail_alignment(TCGContext *s, TCGLabelQemuLdst *l)
 
     if (TCG_TARGET_REG_BITS < TARGET_LONG_BITS) {
         TCGReg arg = TCG_REG_R4;
-#ifdef TCG_TARGET_CALL_ALIGN_ARGS
-        arg |= 1;
-#endif
+
+        arg |= (TCG_TARGET_CALL_ARG_I64 == TCG_CALL_ARG_EVEN);
         if (l->addrlo_reg != arg) {
             tcg_out_mov(s, TCG_TYPE_I32, arg, l->addrhi_reg);
             tcg_out_mov(s, TCG_TYPE_I32, arg + 1, l->addrlo_reg);
@@ -2468,7 +2526,6 @@ static void tcg_out_nop_fill(tcg_insn_unit *p, int count)
 
 /* Parameters for function call generation, used in tcg.c.  */
 #define TCG_TARGET_STACK_ALIGN       16
-#define TCG_TARGET_EXTEND_ARGS       1
 
 #ifdef _CALL_AIX
 # define LINK_AREA_SIZE                (6 * SZR)
@@ -2574,8 +2631,8 @@ static void tcg_out_op(TCGContext *s, TCGOpcode opc,
         if (s->tb_jmp_insn_offset) {
             /* Direct jump. */
             if (TCG_TARGET_REG_BITS == 64) {
-                /* Ensure the next insns are 8-byte aligned. */
-                if ((uintptr_t)s->code_ptr & 7) {
+                /* Ensure the next insns are 8 or 16-byte aligned. */
+                while ((uintptr_t)s->code_ptr & (have_isa_2_07 ? 15 : 7)) {
                     tcg_out32(s, NOP);
                 }
                 s->tb_jmp_insn_offset[args[0]] = tcg_current_code_size(s);

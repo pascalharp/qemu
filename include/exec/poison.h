@@ -66,8 +66,6 @@
 #pragma GCC poison CPU_INTERRUPT_TGT_INT_2
 
 #pragma GCC poison CONFIG_ALPHA_DIS
-#pragma GCC poison CONFIG_ARM_A64_DIS
-#pragma GCC poison CONFIG_ARM_DIS
 #pragma GCC poison CONFIG_CRIS_DIS
 #pragma GCC poison CONFIG_HPPA_DIS
 #pragma GCC poison CONFIG_I386_DIS
@@ -76,7 +74,6 @@
 #pragma GCC poison CONFIG_M68K_DIS
 #pragma GCC poison CONFIG_MICROBLAZE_DIS
 #pragma GCC poison CONFIG_MIPS_DIS
-#pragma GCC poison CONFIG_NANOMIPS_DIS
 #pragma GCC poison CONFIG_NIOS2_DIS
 #pragma GCC poison CONFIG_PPC_DIS
 #pragma GCC poison CONFIG_RISCV_DIS

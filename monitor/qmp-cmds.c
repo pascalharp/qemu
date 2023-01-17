@@ -50,11 +50,7 @@ NameInfo *qmp_query_name(Error **errp)
 {
     NameInfo *info = g_malloc0(sizeof(*info));
 
-    if (qemu_name) {
-        info->has_name = true;
-        info->name = g_strdup(qemu_name);
-    }
-
+    info->name = g_strdup(qemu_name);
     return info;
 }
 
@@ -135,8 +131,11 @@ void qmp_cont(Error **errp)
         blk_iostatus_reset(blk);
     }
 
-    for (job = block_job_next(NULL); job; job = block_job_next(job)) {
-        block_job_iostatus_reset(job);
+    WITH_JOB_LOCK_GUARD() {
+        for (job = block_job_next_locked(NULL); job;
+             job = block_job_next_locked(job)) {
+            block_job_iostatus_reset_locked(job);
+        }
     }
 
     /* Continuing after completed migration. Images have been inactivated to
@@ -471,9 +470,9 @@ static bool invoke_stats_cb(StatsCallbacks *entry,
                             StatsFilter *filter, StatsRequest *request,
                             Error **errp)
 {
+    ERRP_GUARD();
     strList *targets = NULL;
     strList *names = NULL;
-    ERRP_GUARD();
 
     if (request) {
         if (request->provider != entry->provider) {
@@ -538,9 +537,9 @@ StatsSchemaList *qmp_query_stats_schemas(bool has_provider,
                                          StatsProvider provider,
                                          Error **errp)
 {
+    ERRP_GUARD();
     StatsSchemaList *stats_results = NULL;
     StatsCallbacks *entry;
-    ERRP_GUARD();
 
     QTAILQ_FOREACH(entry, &stats_callbacks, next) {
         if (!has_provider || provider == entry->provider) {
@@ -561,10 +560,7 @@ void add_stats_entry(StatsResultList **stats_results, StatsProvider provider,
     StatsResult *entry = g_new0(StatsResult, 1);
 
     entry->provider = provider;
-    if (qom_path) {
-        entry->has_qom_path = true;
-        entry->qom_path = g_strdup(qom_path);
-    }
+    entry->qom_path = g_strdup(qom_path);
     entry->stats = stats_list;
 
     QAPI_LIST_PREPEND(*stats_results, entry);

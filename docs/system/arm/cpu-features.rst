@@ -284,7 +284,7 @@ SVE CPU Property Parsing Semantics
      CPU Property Dependencies and Constraints").
 
   4) If one or more vector lengths have been explicitly enabled and at
-     at least one of the dependency lengths of the maximum enabled length
+     least one of the dependency lengths of the maximum enabled length
      has been explicitly disabled, then an error is generated (see
      constraint (2) of "SVE CPU Property Dependencies and Constraints").
 
@@ -433,7 +433,7 @@ additional constraints on the set of vector lengths supported by SME.
 SME User-mode Default Vector Length Property
 --------------------------------------------
 
-For qemu-aarch64, the cpu propery ``sme-default-vector-length=N`` is
+For qemu-aarch64, the cpu property ``sme-default-vector-length=N`` is
 defined to mirror the Linux kernel parameter file
 ``/proc/sys/abi/sme_default_vector_length``.  The default length, ``N``,
 is in units of bytes and must be between 16 and 8192.

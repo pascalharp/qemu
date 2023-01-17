@@ -28,7 +28,7 @@
 #include "sysemu/block-backend.h"
 #include "trace.h"
 
-#define BLK_MIG_BLOCK_SIZE           (1 << 20)
+#define BLK_MIG_BLOCK_SIZE           (1ULL << 20)
 #define BDRV_SECTORS_PER_DIRTY_CHUNK (BLK_MIG_BLOCK_SIZE >> BDRV_SECTOR_BITS)
 
 #define BLK_MIG_FLAG_DEVICE_BLOCK       0x01
@@ -568,8 +568,8 @@ static int mig_save_device_dirty(QEMUFile *f, BlkMigDevState *bmds,
                 bmds_set_aio_inflight(bmds, sector, nr_sectors, 1);
                 blk_mig_unlock();
             } else {
-                ret = blk_pread(bmds->blk, sector * BDRV_SECTOR_SIZE, blk->buf,
-                                nr_sectors * BDRV_SECTOR_SIZE);
+                ret = blk_pread(bmds->blk, sector * BDRV_SECTOR_SIZE,
+                                nr_sectors * BDRV_SECTOR_SIZE, blk->buf, 0);
                 if (ret < 0) {
                     goto error;
                 }
@@ -880,8 +880,8 @@ static void block_save_pending(QEMUFile *f, void *opaque, uint64_t max_size,
     blk_mig_unlock();
 
     /* Report at least one block pending during bulk phase */
-    if (pending <= max_size && !block_mig_state.bulk_completed) {
-        pending = max_size + BLK_MIG_BLOCK_SIZE;
+    if (!pending && !block_mig_state.bulk_completed) {
+        pending = BLK_MIG_BLOCK_SIZE;
     }
 
     trace_migration_block_save_pending(pending);
@@ -976,8 +976,8 @@ static int block_load(QEMUFile *f, void *opaque, int version_id)
                                                 cluster_size,
                                                 BDRV_REQ_MAY_UNMAP);
                     } else {
-                        ret = blk_pwrite(blk, cur_addr, cur_buf,
-                                         cluster_size, 0);
+                        ret = blk_pwrite(blk, cur_addr, cluster_size, cur_buf,
+                                         0);
                     }
                     if (ret < 0) {
                         break;

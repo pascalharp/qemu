@@ -28,9 +28,9 @@ With the same software configuration as a hardware key,
 the guest OS can use all the functionalities of a secure key as if
 there was actually an hardware key plugged in.
 
-CanoKey QEMU provides much convenience for debuging:
+CanoKey QEMU provides much convenience for debugging:
 
-* libcanokey-qemu supports debuging output thus developers can
+* libcanokey-qemu supports debugging output thus developers can
   inspect what happens inside a secure key
 * CanoKey QEMU supports trace event thus event
 * QEMU USB stack supports pcap thus USB packet between the guest
@@ -102,8 +102,8 @@ and find CanoKey QEMU there:
 
 You may setup the key as guided in [6]_. The console for the key is at [7]_.
 
-Debuging
-========
+Debugging
+=========
 
 CanoKey QEMU consists of two parts, ``libcanokey-qemu.so`` and ``canokey.c``,
 the latter of which resides in QEMU. The former provides core functionality
@@ -145,16 +145,6 @@ multiple CanoKey QEMU running, namely you can not
 
 Also, there is no lock on canokey-file, thus two CanoKey QEMU instance
 can not read one canokey-file at the same time.
-
-Another limitation is that this device is not compatible with ``qemu-xhci``,
-in that this device would hang when there are FIDO2 packets (traffic on
-interrupt endpoints). If you do not use FIDO2 then it works as intended,
-but for full functionality you should use old uhci/ehci bus and attach canokey
-to it, for example
-
-.. parsed-literal::
-
-   |qemu_system| -device piix3-usb-uhci,id=uhci -device canokey,bus=uhci.0
 
 References
 ==========

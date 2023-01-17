@@ -2315,6 +2315,14 @@ static void test_qemu_strtosz_invalid(void)
     g_assert_cmpint(res, ==, 0xbaadf00d);
     g_assert(endptr == str);
 
+    /* No suffixes */
+    str = "0x18M";
+    endptr = NULL;
+    err = qemu_strtosz(str, &endptr, &res);
+    g_assert_cmpint(err, ==, -EINVAL);
+    g_assert_cmpint(res, ==, 0xbaadf00d);
+    g_assert(endptr == str);
+
     /* No negative values */
     str = "-0";
     endptr = NULL;
@@ -2452,18 +2460,44 @@ static void test_qemu_strtosz_metric(void)
 
 static void test_freq_to_str(void)
 {
-    g_assert_cmpstr(freq_to_str(999), ==, "999 Hz");
-    g_assert_cmpstr(freq_to_str(1000), ==, "1 KHz");
-    g_assert_cmpstr(freq_to_str(1010), ==, "1.01 KHz");
+    char *str;
+
+    str = freq_to_str(999);
+    g_assert_cmpstr(str, ==, "999 Hz");
+    g_free(str);
+
+    str = freq_to_str(1000);
+    g_assert_cmpstr(str, ==, "1 KHz");
+    g_free(str);
+
+    str = freq_to_str(1010);
+    g_assert_cmpstr(str, ==, "1.01 KHz");
+    g_free(str);
 }
 
 static void test_size_to_str(void)
 {
-    g_assert_cmpstr(size_to_str(0), ==, "0 B");
-    g_assert_cmpstr(size_to_str(1), ==, "1 B");
-    g_assert_cmpstr(size_to_str(1016), ==, "0.992 KiB");
-    g_assert_cmpstr(size_to_str(1024), ==, "1 KiB");
-    g_assert_cmpstr(size_to_str(512ull << 20), ==, "512 MiB");
+    char *str;
+
+    str = size_to_str(0);
+    g_assert_cmpstr(str, ==, "0 B");
+    g_free(str);
+
+    str = size_to_str(1);
+    g_assert_cmpstr(str, ==, "1 B");
+    g_free(str);
+
+    str = size_to_str(1016);
+    g_assert_cmpstr(str, ==, "0.992 KiB");
+    g_free(str);
+
+    str = size_to_str(1024);
+    g_assert_cmpstr(str, ==, "1 KiB");
+    g_free(str);
+
+    str = size_to_str(512ull << 20);
+    g_assert_cmpstr(str, ==, "512 MiB");
+    g_free(str);
 }
 
 static void test_iec_binary_prefix(void)

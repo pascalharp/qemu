@@ -1,3 +1,6 @@
+if 'CONFIG_TCG' not in config_all
+  subdir_done()
+endif
 # There are namespace pollution issues on Windows, due to osdep.h
 # bringing in Windows headers that define a FLOAT128 type.
 if targetos == 'windows'
@@ -34,6 +37,7 @@ tfcflags = [
   '-Wno-missing-prototypes',
   '-Wno-return-type',
   '-Wno-unused-function',
+  '-Wno-missing-format-attribute',
   '-Wno-error',
 ]
 
@@ -629,7 +633,7 @@ test('fp-test-mulAdd', fptest,
            ['f16_mulAdd', 'f32_mulAdd', 'f64_mulAdd', 'f128_mulAdd'],
      suite: ['softfloat-slow', 'softfloat-ops-slow', 'slow'], timeout: 90)
 
-fpbench = executable(
+executable(
   'fp-bench',
   ['fp-bench.c', '../../fpu/softfloat.c'],
   link_with: [libtestfloat, libsoftfloat],

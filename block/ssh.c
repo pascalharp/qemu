@@ -643,7 +643,7 @@ static int connect_to_ssh(BDRVSSHState *s, BlockdevOptionsSsh *opts,
     unsigned int port = 0;
     int new_sock = -1;
 
-    if (opts->has_user) {
+    if (opts->user) {
         s->user = g_strdup(opts->user);
     } else {
         s->user = g_strdup(g_get_user_name());
@@ -1129,9 +1129,9 @@ static coroutine_fn int ssh_co_readv(BlockDriverState *bs,
     return ret;
 }
 
-static int ssh_write(BDRVSSHState *s, BlockDriverState *bs,
-                     int64_t offset, size_t size,
-                     QEMUIOVector *qiov)
+static coroutine_fn int ssh_write(BDRVSSHState *s, BlockDriverState *bs,
+                                  int64_t offset, size_t size,
+                                  QEMUIOVector *qiov)
 {
     ssize_t r;
     size_t written;
@@ -1196,7 +1196,6 @@ static coroutine_fn int ssh_co_writev(BlockDriverState *bs,
     BDRVSSHState *s = bs->opaque;
     int ret;
 
-    assert(!flags);
     qemu_co_mutex_lock(&s->lock);
     ret = ssh_write(s, bs, sector_num * BDRV_SECTOR_SIZE,
                     nb_sectors * BDRV_SECTOR_SIZE, qiov);

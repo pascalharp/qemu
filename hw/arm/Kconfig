@@ -30,6 +30,7 @@ config ARM_VIRT
     select ACPI_VIOT
     select VIRTIO_MEM_SUPPORTED
     select ACPI_CXL
+    select ACPI_HMAT
 
 config CHEETAH
     bool
@@ -115,6 +116,10 @@ config NETDUINO2
     select STM32F205_SOC
 
 config NETDUINOPLUS2
+    bool
+    select STM32F405_SOC
+
+config OLIMEX_STM32_H405
     bool
     select STM32F405_SOC
 
@@ -318,7 +323,11 @@ config ALLWINNER_A10
     select AHCI
     select ALLWINNER_A10_PIT
     select ALLWINNER_A10_PIC
+    select ALLWINNER_A10_CCM
+    select ALLWINNER_A10_DRAMC
     select ALLWINNER_EMAC
+    select ALLWINNER_I2C
+    select AXP209_PMU
     select SERIAL
     select UNIMP
 
@@ -326,6 +335,7 @@ config ALLWINNER_H3
     bool
     select ALLWINNER_A10_PIT
     select ALLWINNER_SUN8I_EMAC
+    select ALLWINNER_I2C
     select SERIAL
     select ARM_TIMER
     select ARM_GIC
@@ -455,6 +465,8 @@ config ASPEED_SOC
     select EMC141X
     select UNIMP
     select LED
+    select PMBUS
+    select MAX31785
 
 config MPS2
     bool

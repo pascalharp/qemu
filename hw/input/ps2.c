@@ -1001,12 +1001,18 @@ void ps2_write_mouse(PS2MouseState *s, int val)
     }
 }
 
-static void ps2_reset(DeviceState *dev)
+static void ps2_reset_hold(Object *obj)
 {
-    PS2State *s = PS2_DEVICE(dev);
+    PS2State *s = PS2_DEVICE(obj);
 
     s->write_cmd = -1;
     ps2_reset_queue(s);
+}
+
+static void ps2_reset_exit(Object *obj)
+{
+    PS2State *s = PS2_DEVICE(obj);
+
     ps2_lower_irq(s);
 }
 
@@ -1036,13 +1042,16 @@ static void ps2_common_post_load(PS2State *s)
     q->cwptr = ccount ? (q->rptr + ccount) & (PS2_BUFFER_SIZE - 1) : -1;
 }
 
-static void ps2_kbd_reset(DeviceState *dev)
+static void ps2_kbd_reset_hold(Object *obj)
 {
-    PS2DeviceClass *ps2dc = PS2_DEVICE_GET_CLASS(dev);
-    PS2KbdState *s = PS2_KBD_DEVICE(dev);
+    PS2DeviceClass *ps2dc = PS2_DEVICE_GET_CLASS(obj);
+    PS2KbdState *s = PS2_KBD_DEVICE(obj);
 
     trace_ps2_kbd_reset(s);
-    ps2dc->parent_reset(dev);
+
+    if (ps2dc->parent_phases.hold) {
+        ps2dc->parent_phases.hold(obj);
+    }
 
     s->scan_enabled = 1;
     s->translate = 0;
@@ -1050,13 +1059,16 @@ static void ps2_kbd_reset(DeviceState *dev)
     s->modifiers = 0;
 }
 
-static void ps2_mouse_reset(DeviceState *dev)
+static void ps2_mouse_reset_hold(Object *obj)
 {
-    PS2DeviceClass *ps2dc = PS2_DEVICE_GET_CLASS(dev);
-    PS2MouseState *s = PS2_MOUSE_DEVICE(dev);
+    PS2DeviceClass *ps2dc = PS2_DEVICE_GET_CLASS(obj);
+    PS2MouseState *s = PS2_MOUSE_DEVICE(obj);
 
     trace_ps2_mouse_reset(s);
-    ps2dc->parent_reset(dev);
+
+    if (ps2dc->parent_phases.hold) {
+        ps2dc->parent_phases.hold(obj);
+    }
 
     s->mouse_status = 0;
     s->mouse_resolution = 0;
@@ -1224,19 +1236,6 @@ static void ps2_kbd_realize(DeviceState *dev, Error **errp)
     qemu_input_handler_register(dev, &ps2_keyboard_handler);
 }
 
-void *ps2_kbd_init(void)
-{
-    DeviceState *dev;
-    PS2KbdState *s;
-
-    dev = qdev_new(TYPE_PS2_KBD_DEVICE);
-    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
-    s = PS2_KBD_DEVICE(dev);
-
-    trace_ps2_kbd_init(s);
-    return s;
-}
-
 static QemuInputHandler ps2_mouse_handler = {
     .name  = "QEMU PS/2 Mouse",
     .mask  = INPUT_EVENT_MASK_BTN | INPUT_EVENT_MASK_REL,
@@ -1249,26 +1248,15 @@ static void ps2_mouse_realize(DeviceState *dev, Error **errp)
     qemu_input_handler_register(dev, &ps2_mouse_handler);
 }
 
-void *ps2_mouse_init(void)
-{
-    DeviceState *dev;
-    PS2MouseState *s;
-
-    dev = qdev_new(TYPE_PS2_MOUSE_DEVICE);
-    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
-    s = PS2_MOUSE_DEVICE(dev);
-
-    trace_ps2_mouse_init(s);
-    return s;
-}
-
 static void ps2_kbd_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    ResettableClass *rc = RESETTABLE_CLASS(klass);
     PS2DeviceClass *ps2dc = PS2_DEVICE_CLASS(klass);
 
     dc->realize = ps2_kbd_realize;
-    device_class_set_parent_reset(dc, ps2_kbd_reset, &ps2dc->parent_reset);
+    resettable_class_set_parent_phases(rc, NULL, ps2_kbd_reset_hold, NULL,
+                                       &ps2dc->parent_phases);
     dc->vmsd = &vmstate_ps2_keyboard;
 }
 
@@ -1282,11 +1270,12 @@ static const TypeInfo ps2_kbd_info = {
 static void ps2_mouse_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    ResettableClass *rc = RESETTABLE_CLASS(klass);
     PS2DeviceClass *ps2dc = PS2_DEVICE_CLASS(klass);
 
     dc->realize = ps2_mouse_realize;
-    device_class_set_parent_reset(dc, ps2_mouse_reset,
-                                  &ps2dc->parent_reset);
+    resettable_class_set_parent_phases(rc, NULL, ps2_mouse_reset_hold, NULL,
+                                       &ps2dc->parent_phases);
     dc->vmsd = &vmstate_ps2_mouse;
 }
 
@@ -1307,8 +1296,10 @@ static void ps2_init(Object *obj)
 static void ps2_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
+    ResettableClass *rc = RESETTABLE_CLASS(klass);
 
-    dc->reset = ps2_reset;
+    rc->phases.hold = ps2_reset_hold;
+    rc->phases.exit = ps2_reset_exit;
     set_bit(DEVICE_CATEGORY_INPUT, dc->categories);
 }
 
