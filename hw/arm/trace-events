@@ -53,3 +53,32 @@ smmuv3_notify_flag_add(const char *iommu) "ADD SMMUNotifier node for iommu mr=%s
 smmuv3_notify_flag_del(const char *iommu) "DEL SMMUNotifier node for iommu mr=%s"
 smmuv3_inv_notifiers_iova(const char *name, uint16_t asid, uint64_t iova, uint8_t tg, uint64_t num_pages) "iommu mr=%s asid=%d iova=0x%"PRIx64" tg=%d num_pages=0x%"PRIx64
 
+# psp-sts.c
+psp_sts_write(uint64_t value) "value=0x%"PRIx64
+psp_sts_read(uint64_t value) "value=0x%"PRIx64
+
+# psp-timer.c
+psp_timer_control_write(uint64_t off, uint64_t value) "offset=0x%"PRIx64" value=0x%"PRIx64
+psp_timer_control_read(uint64_t off, uint64_t value) "offset=0x%"PRIx64" value=0x%"PRIx64
+psp_timer_counter_write(uint64_t value) "value=0x%"PRIx64
+psp_timer_counter_read(uint64_t value) "value=0x%"PRIx64
+
+# psp-misc.c
+psp_misc_read(uint64_t off, uint64_t value, unsigned int size) "offset=0x%"PRIx64" value=0x%"PRIx64" size=0x%x"
+psp_misc_write(uint64_t off, uint64_t value, unsigned int size) "offset=0x%"PRIx64" value=0x%"PRIx64" size=0x%x"
+psp_misc_read_unimplemented(uint64_t off, unsigned int size) "offset=0x%"PRIx64" value=0x0 (default) size=0x%x"
+psp_misc_write_unimplemented(uint64_t off, uint64_t value, unsigned int size) "offset=0x%"PRIx64" value=0x%"PRIx64" size=0x%x"
+
+# psp-fuse.c
+psp_fuse_read(uint64_t off, uint64_t value, unsigned int size) "offset=0x%"PRIx64" value=0x%"PRIx64" size=0x%x" 
+
+# psp-smn.c
+psp_smn_read(uint64_t off, uint64_t phys, uint64_t value, uint64_t size) "offset=0x%"PRIx64" phys=0x%"PRIx64" value=0x%"PRIx64" size=0x%"PRIx64
+psp_smn_write(uint64_t off, uint64_t phys, uint64_t value, uint64_t size) "offset=0x%"PRIx64" phys=0x%"PRIx64" value=0x%"PRIx64" size=0x%"PRIx64
+psp_smn_update_slot(uint32_t idx, uint64_t addr) "slot=0x%"PRIx32" addr=0x%"PRIx64 
+
+# psp-smn-misc.c
+psp_smn_misc_read(uint64_t off, uint64_t val) "offset=0x%"PRIx64" value=0x%"PRIx64
+psp_smn_misc_read_unimplemented(uint64_t off) "offset=0x%"PRIx64" value=0x0 (default)"
+psp_smn_misc_write(uint64_t off, uint64_t val) "offset=0x%"PRIx64" value=0x%"PRIx64
+psp_smn_misc_write_unimplemented(uint64_t off, uint64_t val) "offset=0x%"PRIx64" value=0x%"PRIx64

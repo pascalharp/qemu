@@ -96,6 +96,7 @@ meson_options_help() {
   printf "%s\n" '  gio             use libgio for D-Bus support'
   printf "%s\n" '  glusterfs       Glusterfs block device driver'
   printf "%s\n" '  gnutls          GNUTLS cryptography support'
+  printf "%s\n" '  gmp             gmp support'
   printf "%s\n" '  gtk             GTK+ user interface'
   printf "%s\n" '  gtk-clipboard   clipboard support for the gtk UI (EXPERIMENTAL, MAY HANG)'
   printf "%s\n" '  guest-agent     Build QEMU Guest Agent'
@@ -352,6 +353,8 @@ _meson_option_parse() {
     --disable-netmap) printf "%s" -Dnetmap=disabled ;;
     --enable-nettle) printf "%s" -Dnettle=enabled ;;
     --disable-nettle) printf "%s" -Dnettle=disabled ;;
+    --enable-gmp) printf "%s" -Dgmp=enabled ;;
+    --disable-gmp) printf "%s" -Dgmp=disabled ;;
     --enable-numa) printf "%s" -Dnuma=enabled ;;
     --disable-numa) printf "%s" -Dnuma=disabled ;;
     --enable-nvmm) printf "%s" -Dnvmm=enabled ;;

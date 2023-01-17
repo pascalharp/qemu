@@ -28,6 +28,26 @@ axp209_rx(uint8_t reg, uint8_t data) "Read reg 0x%" PRIx8 " : 0x%" PRIx8
 axp209_select(uint8_t reg) "Accessing reg 0x%" PRIx8
 axp209_tx(uint8_t reg, uint8_t data) "Write reg 0x%" PRIx8 " : 0x%" PRIx8
 
+# ccpv5.c
+ccp_ctrl_read(uint64_t off, uint32_t val) "offset=0x%"PRIx64" value=0x%"PRIx32
+ccp_ctrl_write(uint64_t off, uint32_t val) "offset=0x%"PRIx64" value=0x%"PRIx32
+ccp_config_read(uint64_t off, uint32_t val) "offset=0x%"PRIx64" value=0x%"PRIx32
+ccp_config_write(uint64_t off, uint32_t val) "offset=0x%"PRIx64" value=0x%"PRIx32
+ccp_passthrough(uint32_t len, uint64_t src, uint64_t dest) "len=0x%"PRIx32" src=0x%"PRIx64" dest=0x%"PRIx64
+ccp_perform_sha_256(uint32_t len, uint64_t src) "len=0x%"PRIx32" src=0x%"PRIx64
+ccp_zlib(uint64_t src, uint64_t dst, uint32_t len, unsigned int src_type, unsigned int dst_type, bool init, bool eom) "src=0x%"PRIx64" dest=0x%"PRIx64" len=0x%"PRIx32" src_type=%d dst_type=%d init=%d eom=%d"
+ccp_sha(uint64_t src, uint32_t len, uint64_t sha_len, bool init, bool eom, uint32_t ctx_id) "src=0x%"PRIx64" len=0x%"PRIx32" sha_len=0x%"PRIx64" init=%d eom=%d ctx_id=0x%"PRIu32
+ccp_rsa(uint32_t src, uint32_t len, uint64_t rsa_dst, uint32_t rsa_dst_mtype, uint16_t rsa_mode, uint16_t rsa_size, bool eom, bool init) "src=0x%"PRIx32" len=0x%"PRIx32" rsa_dst=0x%"PRIx64" rsa_dst_mtype=%"PRIu32" rsa_mode=%"PRIu16" rsa_size=%"PRIu16" eom=%d init=%d"
+ccp_process_queue(uint32_t id, uint32_t tail, uint32_t head) "id=0x%"PRIx32" tail=0x%"PRIx32" head=0x%"PRIx32
+ccp_queue_ctrl_read(uint32_t id, uint32_t value) "queue=%"PRId32" value=0x%"PRIx32
+ccp_queue_tail_lo_read(uint32_t id, uint32_t value) "queue=%"PRId32" value=0x%"PRIx32
+ccp_queue_head_lo_read(uint32_t id, uint32_t value) "queue=%"PRId32" value=0x%"PRIx32
+ccp_queue_status_read(uint32_t id, uint32_t value) "queue=%"PRId32" value=0x%"PRIx32
+ccp_queue_ctrl_write(uint32_t id, uint32_t value) "queue=%"PRId32" value=0x%"PRIx32
+ccp_queue_tail_lo_write(uint32_t id, uint32_t value) "queue=%"PRId32" value=0x%"PRIx32
+ccp_queue_head_lo_write(uint32_t id, uint32_t value) "queue=%"PRId32" value=0x%"PRIx32
+ccp_queue_status_write(uint32_t id, uint32_t value) "queue=%"PRId32" value=0x%"PRIx32
+
 # eccmemctl.c
 ecc_mem_writel_mer(uint32_t val) "Write memory enable 0x%08x"
 ecc_mem_writel_mdr(uint32_t val) "Write memory delay 0x%08x"

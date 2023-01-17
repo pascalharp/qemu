@@ -145,6 +145,8 @@ option('gnutls', type : 'feature', value : 'auto',
        description: 'GNUTLS cryptography support')
 option('nettle', type : 'feature', value : 'auto',
        description: 'nettle cryptography support')
+option('gmp', type : 'feature', value : 'auto',
+       description: 'gmp support')
 option('gcrypt', type : 'feature', value : 'auto',
        description: 'libgcrypt cryptography support')
 option('crypto_afalg', type : 'feature', value : 'disabled',
