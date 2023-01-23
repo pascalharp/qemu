@@ -42,12 +42,6 @@ static const MemoryRegionOps sts_mem_ops = {
     .valid.max_access_size = 4,
 };
 
-static void psp_sts_reset(DeviceState *dev) {
-
-    PSPStsState *s = PSP_STS(dev);
-    s->psp_sts_val = 0;
-}
-
 static void psp_sts_realize(DeviceState *dev, Error **errp) {
 
     PSPStsState *s = PSP_STS(dev);
@@ -65,7 +59,6 @@ static void psp_sts_class_init(ObjectClass * klass, void * data) {
     DeviceClass * dc = DEVICE_CLASS(klass);
 
     dc->realize = psp_sts_realize;
-    dc->reset = psp_sts_reset;
 }
 
 static const TypeInfo psp_sts_info = {
