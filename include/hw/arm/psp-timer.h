@@ -20,10 +20,10 @@
 #define AMD_PSP_TIMER_H
 
 #include "hw/sysbus.h"
-#include "exec/memory.h"
+#include "qom/object.h"
 
 #define TYPE_PSP_TIMER "amd_psp.timer"
-#define PSP_TIMER(obj) OBJECT_CHECK(PSPTimerState, (obj), TYPE_PSP_TIMER)
+OBJECT_DECLARE_SIMPLE_TYPE(PSPTimerState, PSP_TIMER)
 
 /* PSP Timer iomem size */
 #define PSP_TIMER_SIZE 0x24

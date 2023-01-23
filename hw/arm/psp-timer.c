@@ -17,21 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "qemu/osdep.h"
-#include "qapi/error.h"
-#include "qemu/module.h"
-#include "sysemu/sysemu.h"
-#include "exec/address-spaces.h"
-#include "hw/sysbus.h"
-#include "qemu/osdep.h"
-#include "qapi/error.h"
-#include "hw/qdev-properties.h"
-#include "hw/boards.h"
-#include "hw/loader.h"
-#include "hw/arm/psp.h"
 #include "qemu/log.h"
-#include "trace-hw_arm.h"
-#include "trace.h"
 #include "hw/arm/psp-timer.h"
+#include "qom/object.h"
+#include "trace.h"
 
 static char ident[] = "PSP Timer";
 
@@ -112,23 +101,27 @@ static const MemoryRegionOps timer_mem_ops = {
     .impl.max_access_size = 4,
 };
 
-static void psp_timer_init(Object *obj) {
-    PSPTimerState *s = PSP_TIMER(obj);
-    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+static void psp_timer_realize(DeviceState *dev, Error **errp) {
+    PSPTimerState *s = PSP_TIMER(dev);
+
     s->psp_timer_control = 0;
     s->psp_timer_count = 0;
 
-    memory_region_init_io(&s->psp_timer_iomem, obj, &timer_mem_ops, s,
+    memory_region_init_io(&s->psp_timer_iomem, OBJECT(dev), &timer_mem_ops, s,
                           TYPE_PSP_TIMER, PSP_TIMER_SIZE);
-    sysbus_init_mmio(sbd, &s->psp_timer_iomem);
+    sysbus_init_mmio(SYS_BUS_DEVICE(dev), &s->psp_timer_iomem);
+}
+
+static void psp_timer_class_init(ObjectClass *klass, void *data) {
+    DeviceClass *dc = DEVICE_CLASS(klass);
+    dc->realize = psp_timer_realize;
 }
 
 static const TypeInfo psp_timer_info = {
     .name = TYPE_PSP_TIMER,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_init = psp_timer_init,
     .instance_size = sizeof(PSPTimerState),
-
+    .class_init = psp_timer_class_init,
 };
 
 static void psp_timer_register_types(void) {
