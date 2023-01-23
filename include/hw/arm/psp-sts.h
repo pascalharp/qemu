@@ -19,8 +19,11 @@
 #ifndef AMD_PSP_STS_H
 #define AMD_PSP_STS_H
 
+#include "hw/sysbus.h"
+#include "qom/object.h"
+
 #define TYPE_PSP_STS "amd_psp.sts"
-#define PSP_STS(obj) OBJECT_CHECK(PSPStsState, (obj), TYPE_PSP_STS)
+OBJECT_DECLARE_SIMPLE_TYPE(PSPStsState, PSP_STS)
 
 typedef struct PSPStsState {
     SysBusDevice parent_obj;
