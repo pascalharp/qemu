@@ -19,26 +19,15 @@
 #ifndef AMD_PSP_MISC_H
 #define AMD_PSP_MISC_H
 
+#include "hw/sysbus.h"
+#include "qom/object.h"
 
 #define TYPE_PSP_MISC "amd_psp.misc"
-#define PSP_MISC(obj) OBJECT_CHECK(PSPMiscState, (obj), TYPE_PSP_MISC)
-
-typedef struct PSPMiscReg {
-    uint32_t addr;
-    uint32_t val;
-} PSPMiscReg;
-
+OBJECT_DECLARE_SIMPLE_TYPE(PSPMiscState, PSP_MISC)
 
 typedef struct PSPMiscState {
     SysBusDevice parent_obj;
     MemoryRegion iomem;
-
-    /* Size of MMIO region covered by this instance */
-    uint64_t mmio_size;
-
-    /* Identifier of this instance */
-    char *ident;
-
 } PSPMiscState;
 
 

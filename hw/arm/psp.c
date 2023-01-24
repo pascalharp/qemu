@@ -134,10 +134,6 @@ static void amd_psp_realize(DeviceState *dev, Error **errp)
     //                        PSP_X86_BASE, &error_abort);
     //sysbus_realize(SYS_BUS_DEVICE(&s->x86), &err);
 
-    qdev_prop_set_uint64(DEVICE(&s->base_mem), "psp_misc_msize", (1UL << 32));
-
-    qdev_prop_set_string(DEVICE(&s->base_mem), "psp_misc_ident", "BASE MEM");
-
     if(!sysbus_realize(SYS_BUS_DEVICE(&s->base_mem), &err)) {
         return;
     }
@@ -200,8 +196,7 @@ static void amd_psp_realize(DeviceState *dev, Error **errp)
 
     /* Map the misc device as an overlap with low priority */
     /* This device covers all "unknown" psp registers */
-    /* TODO reduce this to only cover the known mmio region */
-    sysbus_mmio_map_overlap(SYS_BUS_DEVICE(&s->base_mem), 0, 0, -100);
+    sysbus_mmio_map_overlap(SYS_BUS_DEVICE(&s->base_mem), 0, PSP_MMIO_BASE, -100);
 
     /* General unimplemented device that maps the whole memory with low priority */
     qdev_prop_set_string(DEVICE(&s->unimp), "name", "unimp");
