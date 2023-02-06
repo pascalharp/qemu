@@ -34,6 +34,7 @@
 #include "hw/arm/psp-timer.h"
 #include "hw/arm/psp-sts.h"
 #include "qemu/log.h"
+#include <stdint.h>
 
 // TODO: use mmio_map_overlap with memory_regions_dispatch_rw to log access to SPI flash
 
@@ -198,9 +199,9 @@ static void amd_psp_realize(DeviceState *dev, Error **errp)
     /* This device covers all "unknown" psp registers */
     sysbus_mmio_map_overlap(SYS_BUS_DEVICE(&s->base_mem), 0, PSP_MMIO_BASE, -100);
 
-    /* General unimplemented device that maps the whole memory with low priority */
+    /* General unimplemented device that maps the whole address-spaces with low priority */
     qdev_prop_set_string(DEVICE(&s->unimp), "name", "unimp");
-    qdev_prop_set_uint64(DEVICE(&s->unimp), "size", c->sram_size);
+    qdev_prop_set_uint64(DEVICE(&s->unimp), "size", UINT32_MAX);
     if(!sysbus_realize(SYS_BUS_DEVICE(&s->unimp), &error_abort)) {
         return;
     }
