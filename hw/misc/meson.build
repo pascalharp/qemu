@@ -138,7 +138,7 @@ specific_ss.add(when: 'CONFIG_MIPS_ITU', if_true: files('mips_itu.c'))
 
 softmmu_ss.add(when: 'CONFIG_SBSA_REF', if_true: files('sbsa_ec.c'))
 
-specific_ss.add(when: 'CONFIG_AMD_PSP', if_true: [gmp, files('ccpv5.c')])
+specific_ss.add(when: 'CONFIG_AMD_PSP', if_true: [files('ccpv5.c')])
 
 # HPPA devices
 softmmu_ss.add(when: 'CONFIG_LASI', if_true: files('lasi.c'))
