@@ -24,3 +24,22 @@ path/to/build/dir/qemu-system-arm \
     -device loader,file=$PATH_TO_ON_CHIP_BL,addr=0xffff0000,force-raw=on \
     -global driver=amd_psp.smnflash,property=flash_img,value=$PATH_TO_BIOS_IMAGE
 ```
+
+### Trace
+Most implemented components offer trace output capabilities. To obtain trace information for the status port and the cryptographic co-processor, simply include the following flag:
+```
+-d "trace:psp_*,trace:cpp_*"
+```
+All currently supported AMD Secure Processor specific trace options can be listed with:
+```
+qemu-system-arm -d "trace:help" | grep -E 'psp|ccp'
+```
+
+### GDB
+To establish a GDB connection and pause the emulation at its start, add the following flags:
+```
+-s -S
+```
+
+### Other capabilities
+For additional utilities, such as the QEMU monitor, refer to the official QEMU documentation.
